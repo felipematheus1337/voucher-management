@@ -1,11 +1,14 @@
 package com.vouchers.services;
 
+import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
 import com.vouchers.models.Voucher;
 import com.vouchers.models.VoucherStatus;
 import com.vouchers.models.VoucherType;
 import com.vouchers.repositories.VoucherRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -73,5 +76,30 @@ public class VoucherServiceImpl implements VoucherService {
                         new VoucherResponseDTO(v.getBalance(), v.getCode(), v.getDescription(),
                                 v.getExpirationDate(), v.getType(), v.getStatus()))
                 .toList();
+    }
+
+    @Override
+    public List<VoucherResponseDTO> getByType(VoucherType type) {
+        return List.of();
+    }
+
+    @Override
+    public List<VoucherResponseDTO> getByStatus(VoucherStatus status) {
+        return List.of();
+    }
+
+    @Override
+    public Page<VoucherResponseDTO> getPaginado(Pageable pageable) {
+        return null;
+    }
+
+    @Override
+    public void createInLote(List<VoucherCreationDTO> vouchers) {
+
+    }
+
+    @Override
+    public UsedVoucherResponseDTO use(String code) {
+        return null;
     }
 }
