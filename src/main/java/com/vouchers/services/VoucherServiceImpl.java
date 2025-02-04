@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class VoucherServiceImpl implements VoucherService {
@@ -27,8 +28,8 @@ public class VoucherServiceImpl implements VoucherService {
 
         voucher.setCreatedAt(LocalDateTime.now());
         voucher.setBalance(dto.balance());
+        voucher.setCode(this.generateVoucherCode());
 
-        voucher.setCode(dto.code());
         voucher.setDescription(dto.description());
         voucher.setType(dto.type());
         voucher.setStatus(VoucherStatus.ACTIVE);
@@ -57,6 +58,12 @@ public class VoucherServiceImpl implements VoucherService {
 
         return actualTime.plusMonths(type.getExpirationMonths());
     }
+
+    private String generateVoucherCode() {
+        UUID uuid = UUID.randomUUID();
+        return "VOUCHER-" + uuid.toString().substring(0, 8).toUpperCase();
+    }
+
 
     @Override
     public List<VoucherResponseDTO> list() {

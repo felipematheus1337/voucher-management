@@ -5,6 +5,7 @@ import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
 import com.vouchers.services.VoucherService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +20,7 @@ public class VoucherBusinessController {
         this.voucherService = voucherService;
     }
 
+    @PostMapping("/create")
     public ResponseEntity<VoucherResponseDTO> createVoucher(@RequestBody VoucherCreationDTO dto) {
         var response = voucherService.create(dto);
         return ResponseEntity.status(201).body(response);
