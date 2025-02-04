@@ -10,6 +10,9 @@ import com.vouchers.repositories.VoucherRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,10 +25,12 @@ public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository repository;
     private final ModelMapper mapper;
+    private final MongoTemplate mongoTemplate;
 
-    public VoucherServiceImpl(VoucherRepository repository, ModelMapper modelMapper) {
+    public VoucherServiceImpl(VoucherRepository repository, ModelMapper modelMapper, MongoTemplate mongoTemplate) {
         this.repository = repository;
         this.mapper = modelMapper;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
@@ -72,13 +77,21 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
-    public List<VoucherResponseDTO> getByType(VoucherType type) {
-        return List.of();
+    public List<VoucherResponseDTO> getByType(String type) {
+        return this.repository.findByType(type)
+                .stream()
+                .map(v -> mapper.map(v, VoucherResponseDTO.class))
+                .toList();
+
     }
 
     @Override
-    public List<VoucherResponseDTO> getByStatus(VoucherStatus status) {
-        return List.of();
+    public List<VoucherResponseDTO> getByStatus(String status) {
+       Query query = new Query(Criteria.where("status").is(status));
+       List<Voucher> vouchers = mongoTemplate.find(query, Voucher.class);
+       return vouchers.stream()
+               .map(v -> mapper.map(v,VoucherResponseDTO.class))
+               .toList();
     }
 
     @Override

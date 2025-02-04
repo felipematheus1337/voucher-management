@@ -19,9 +19,9 @@ public interface VoucherService {
 
     VoucherResponseDTO getByCode(String code);
 
-    List<VoucherResponseDTO> getByType(VoucherType type);
+    List<VoucherResponseDTO> getByType(String type);
 
-    List<VoucherResponseDTO> getByStatus(VoucherStatus status);
+    List<VoucherResponseDTO> getByStatus(String status);
 
     Page<VoucherResponseDTO> getPaginado(Pageable pageable);
 
