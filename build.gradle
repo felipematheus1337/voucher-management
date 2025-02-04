@@ -15,6 +15,11 @@ java {
 
 repositories {
 	mavenCentral()
+	mavenLocal()
+}
+
+ext {
+	mapstructVersion = "1.6.0"
 }
 
 dependencies {
@@ -23,11 +28,20 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.kafka:spring-kafka'
+	implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+	implementation 'org.modelmapper:modelmapper:3.2.0'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	annotationProcessor "org.mapstruct:mapstruct-processor:1.6.0"
+}
+
+tasks.withType(JavaCompile) {
+	options.compilerArgs = [
+			'-Amapstruct.suppressGeneratorTimestamp=true'
+	]
 }
 
 tasks.named('test') {

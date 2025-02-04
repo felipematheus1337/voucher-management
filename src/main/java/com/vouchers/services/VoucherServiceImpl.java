@@ -7,6 +7,7 @@ import com.vouchers.models.Voucher;
 import com.vouchers.models.VoucherStatus;
 import com.vouchers.models.VoucherType;
 import com.vouchers.repositories.VoucherRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,9 +21,11 @@ import java.util.UUID;
 public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository repository;
+    private final ModelMapper mapper;
 
-    public VoucherServiceImpl(VoucherRepository repository) {
+    public VoucherServiceImpl(VoucherRepository repository, ModelMapper modelMapper) {
         this.repository = repository;
+        this.mapper = modelMapper;
     }
 
     @Override
@@ -46,25 +49,7 @@ public class VoucherServiceImpl implements VoucherService {
 
         var response = repository.save(voucher);
 
-        return new VoucherResponseDTO(
-                response.getBalance(),
-                response.getCode(),
-                response.getDescription(),
-                response.getExpirationDate(),
-                response.getType(),
-                response.getStatus()
-        );
-    }
-
-    private LocalDateTime setExpirationDate(VoucherType type) {
-        LocalDateTime actualTime = LocalDateTime.now();
-
-        return actualTime.plusMonths(type.getExpirationMonths());
-    }
-
-    private String generateVoucherCode() {
-        UUID uuid = UUID.randomUUID();
-        return "VOUCHER-" + uuid.toString().substring(0, 8).toUpperCase();
+        return mapper.map(response, VoucherResponseDTO.class);
     }
 
 
@@ -72,10 +57,18 @@ public class VoucherServiceImpl implements VoucherService {
     public List<VoucherResponseDTO> list() {
         return repository.findAll()
                 .stream()
-                .map(v ->
-                        new VoucherResponseDTO(v.getBalance(), v.getCode(), v.getDescription(),
-                                v.getExpirationDate(), v.getType(), v.getStatus()))
+                .map(v -> mapper.map(v, VoucherResponseDTO.class))
                 .toList();
+
+    }
+
+    @Override
+    public VoucherResponseDTO getByCode(String code) {
+        var voucher = this.repository.findByCode(code)
+                .orElseThrow(() -> new RuntimeException("Voucher not found with the code: " + code));
+
+        return this.mapper.map(voucher, VoucherResponseDTO.class);
+
     }
 
     @Override
@@ -101,5 +94,16 @@ public class VoucherServiceImpl implements VoucherService {
     @Override
     public UsedVoucherResponseDTO use(String code) {
         return null;
+    }
+
+    private LocalDateTime setExpirationDate(VoucherType type) {
+        LocalDateTime actualTime = LocalDateTime.now();
+
+        return actualTime.plusMonths(type.getExpirationMonths());
+    }
+
+    private String generateVoucherCode() {
+        UUID uuid = UUID.randomUUID();
+        return "VOUCHER-" + uuid.toString().substring(0, 8).toUpperCase();
     }
 }
