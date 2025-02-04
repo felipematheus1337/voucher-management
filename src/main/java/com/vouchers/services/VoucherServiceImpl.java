@@ -11,10 +11,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-
-import static com.vouchers.models.VoucherType.BASIC;
-import static com.vouchers.models.VoucherType.PREMIUM;
 
 @Service
 public class VoucherServiceImpl implements VoucherService {
@@ -44,10 +40,16 @@ public class VoucherServiceImpl implements VoucherService {
         LocalDateTime expirationDate = this.setExpirationDate(voucher.getType());
         voucher.setExpirationDate(expirationDate);
 
+        var response = repository.save(voucher);
 
-        repository.save(voucher);
-
-        return null;
+        return new VoucherResponseDTO(
+                response.getBalance(),
+                response.getCode(),
+                response.getDescription(),
+                response.getExpirationDate(),
+                response.getType(),
+                response.getStatus()
+        );
     }
 
     private LocalDateTime setExpirationDate(VoucherType type) {
