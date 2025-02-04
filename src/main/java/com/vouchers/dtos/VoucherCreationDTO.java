@@ -6,5 +6,5 @@ import com.vouchers.models.VoucherType;
 import java.math.BigDecimal;
 
 public record VoucherCreationDTO(BigDecimal value, BigDecimal balance, String code, VoucherType type,
-                                 VoucherStatus status, String description) {
+                                String description) {
 }
