@@ -8,6 +8,7 @@ import com.vouchers.models.VoucherType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,5 +28,5 @@ public interface VoucherService {
 
     void createInLote(List<VoucherCreationDTO> vouchers);
 
-    UsedVoucherResponseDTO use(String code);
+    UsedVoucherResponseDTO useVoucher(String code, BigDecimal value);
 }

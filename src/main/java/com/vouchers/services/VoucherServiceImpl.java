@@ -3,7 +3,10 @@ package com.vouchers.services;
 import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
+import com.vouchers.exceptions.InsufficientVoucherBalanceException;
+import com.vouchers.exceptions.VoucherNotActiveException;
 import com.vouchers.exceptions.VoucherNotFoundException;
+import com.vouchers.exceptions.VoucherWithExpiredDateException;
 import com.vouchers.models.Voucher;
 import com.vouchers.models.VoucherStatus;
 import com.vouchers.models.VoucherType;
@@ -15,10 +18,13 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -105,9 +111,47 @@ public class VoucherServiceImpl implements VoucherService {
 
     }
 
+
+    @Transactional
     @Override
-    public UsedVoucherResponseDTO use(String code) {
-        return null;
+    public UsedVoucherResponseDTO useVoucher(String code, BigDecimal value) {
+        var response = this.getByCode(code);
+
+        if (!VoucherStatus.ACTIVE.equals(response.status()))
+            throw new VoucherNotActiveException(code, "Voucher is not active to use.");
+
+        BigDecimal newBalance = this.calculateAvaliableValue(response.balance(), value);
+
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0)
+            throw new InsufficientVoucherBalanceException(code, "Voucher with not enough balance to use this value");
+
+        Voucher voucher = this.repository.findById(response.id()).get();
+        LocalDateTime actualDate = LocalDateTime.now();
+        LocalDateTime expirationDate = response.expirationDate();
+
+        if (expirationDate.isBefore(actualDate)) {
+            voucher.setStatus(VoucherStatus.EXPIRED);
+            throw new VoucherWithExpiredDateException(code, "Voucher expired.");
+        }
+
+        BigDecimal newValue = voucher.getValue().add(value);
+        int usages = voucher.getUsages() + 1;
+        boolean stillUsable = newBalance.compareTo(BigDecimal.ZERO) > 0;
+        VoucherStatus status = stillUsable ? VoucherStatus.ACTIVE : VoucherStatus.USED;
+
+        voucher.setValue(newValue);
+        voucher.setUsages(usages);
+        voucher.setUsable(stillUsable);
+        voucher.setStatus(status);
+
+        this.repository.save(voucher);
+
+        return new UsedVoucherResponseDTO(newBalance, code, status, expirationDate);
+    }
+
+
+    private BigDecimal calculateAvaliableValue(BigDecimal balance, BigDecimal value) {
+        return balance.subtract(value);
     }
 
     private LocalDateTime setExpirationDate(VoucherType type) {
