@@ -3,6 +3,7 @@ package com.vouchers.services;
 import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
+import com.vouchers.exceptions.VoucherNotFoundException;
 import com.vouchers.models.Voucher;
 import com.vouchers.models.VoucherStatus;
 import com.vouchers.models.VoucherType;
@@ -70,7 +71,7 @@ public class VoucherServiceImpl implements VoucherService {
     @Override
     public VoucherResponseDTO getByCode(String code) {
         var voucher = this.repository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("Voucher not found with the code: " + code));
+                .orElseThrow(() -> new VoucherNotFoundException(code, "Voucher not found with that code."));
 
         return this.mapper.map(voucher, VoucherResponseDTO.class);
 

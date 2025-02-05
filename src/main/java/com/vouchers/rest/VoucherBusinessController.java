@@ -3,8 +3,8 @@ package com.vouchers.rest;
 
 import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
+import com.vouchers.exceptions.VoucherNotFoundException;
 import com.vouchers.services.VoucherService;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +27,22 @@ public class VoucherBusinessController {
     }
 
     @GetMapping("/listagem")
-    public ResponseEntity<List<VoucherResponseDTO>> listar() {
+    public ResponseEntity<List<VoucherResponseDTO>> list() {
         return ResponseEntity.ok(voucherService.list());
+    }
+
+    @GetMapping("/listar/status/{status}")
+    public ResponseEntity<List<VoucherResponseDTO>> listByStatus(@PathVariable String status) {
+        return ResponseEntity.ok(voucherService.getByStatus(status));
+    }
+
+    @GetMapping("/listar/tipo/{type}")
+    public ResponseEntity<List<VoucherResponseDTO>> listByType(@PathVariable String type) {
+        return ResponseEntity.ok(voucherService.getByType(type));
+    }
+
+    @GetMapping("/{code}")
+    public ResponseEntity<VoucherResponseDTO> getByCode(@PathVariable String code) throws VoucherNotFoundException {
+        return ResponseEntity.ok(voucherService.getByCode(code));
     }
 }
