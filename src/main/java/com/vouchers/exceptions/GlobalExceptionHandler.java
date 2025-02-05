@@ -20,6 +20,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
+    @ExceptionHandler(InsufficientVoucherBalanceException.class)
+    public ResponseEntity<ErrorResponseDTO> handleInsufficient(InsufficientVoucherBalanceException v) {
+        var errorResponse = new ErrorResponseDTO(
+                v.getCode(),
+                v.getDescription()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(VoucherNotActiveException.class)
+    public ResponseEntity<ErrorResponseDTO> handleVoucherNotActive(VoucherNotActiveException v) {
+        var errorResponse = new ErrorResponseDTO(
+                v.getCode(),
+                v.getDescription()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(VoucherWithExpiredDateException.class)
+    public ResponseEntity<ErrorResponseDTO> handleVoucherExpired(VoucherWithExpiredDateException v) {
+        var errorResponse = new ErrorResponseDTO(
+                v.getCode(),
+                v.getDescription()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericErrorResponse> handleGenericException(Exception ex) {
@@ -27,4 +53,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(error.statusCode()).body(error);
     }
+
+
 }

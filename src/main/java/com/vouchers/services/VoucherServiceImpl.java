@@ -1,5 +1,6 @@
 package com.vouchers.services;
 
+import com.vouchers.dtos.UseVoucherDTO;
 import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
@@ -114,7 +115,10 @@ public class VoucherServiceImpl implements VoucherService {
 
     @Transactional
     @Override
-    public UsedVoucherResponseDTO useVoucher(String code, BigDecimal value) {
+    public UsedVoucherResponseDTO useVoucher(UseVoucherDTO dto) {
+        String code = dto.code();
+        BigDecimal value = dto.value();
+
         var response = this.getByCode(code);
 
         if (!VoucherStatus.ACTIVE.equals(response.status()))

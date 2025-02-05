@@ -1,5 +1,6 @@
 package com.vouchers.services;
 
+import com.vouchers.dtos.UseVoucherDTO;
 import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
@@ -28,5 +29,5 @@ public interface VoucherService {
 
     void createInLote(List<VoucherCreationDTO> vouchers);
 
-    UsedVoucherResponseDTO useVoucher(String code, BigDecimal value);
+    UsedVoucherResponseDTO useVoucher(UseVoucherDTO dto);
 }

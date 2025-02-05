@@ -1,6 +1,8 @@
 package com.vouchers.rest;
 
 
+import com.vouchers.dtos.UseVoucherDTO;
+import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
 import com.vouchers.exceptions.VoucherNotFoundException;
@@ -24,6 +26,11 @@ public class VoucherBusinessController {
     public ResponseEntity<VoucherResponseDTO> createVoucher(@RequestBody VoucherCreationDTO dto) {
         var response = voucherService.create(dto);
         return ResponseEntity.status(201).body(response);
+    }
+
+    @PatchMapping("/use")
+    public ResponseEntity<UsedVoucherResponseDTO> useVoucher(@RequestBody UseVoucherDTO dto) {
+        return ResponseEntity.ok(voucherService.useVoucher(dto))
     }
 
     @GetMapping("/listagem")
