@@ -7,6 +7,7 @@ import com.vouchers.dtos.VoucherCreationDTO;
 import com.vouchers.dtos.VoucherResponseDTO;
 import com.vouchers.exceptions.VoucherNotFoundException;
 import com.vouchers.services.VoucherService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +31,12 @@ public class VoucherBusinessController {
 
     @PatchMapping("/use")
     public ResponseEntity<UsedVoucherResponseDTO> useVoucher(@RequestBody UseVoucherDTO dto) {
-        return ResponseEntity.ok(voucherService.useVoucher(dto))
+        return ResponseEntity.ok(voucherService.useVoucher(dto));
+    }
+
+    @GetMapping("/paginado")
+    public ResponseEntity<Page<VoucherResponseDTO>> getPaginate(@RequestParam int page, @RequestParam int size) {
+        return ResponseEntity.ok(voucherService.getPaginado(page, size));
     }
 
     @GetMapping("/listagem")

@@ -14,7 +14,9 @@ import com.vouchers.models.VoucherType;
 import com.vouchers.repositories.VoucherRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class VoucherServiceImpl implements VoucherService {
@@ -103,9 +106,16 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
-    public Page<VoucherResponseDTO> getPaginado(Pageable pageable) {
-        return null;
+    public Page<VoucherResponseDTO> getPaginado(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("expirationDate").ascending());
+
+        Page<Voucher> vouchersPage = this.repository.findAll(pageable);
+
+        Page<VoucherResponseDTO> responsePage = vouchersPage.map(v -> mapper.map(v, VoucherResponseDTO.class));
+
+        return responsePage;
     }
+
 
     @Override
     public void createInLote(List<VoucherCreationDTO> vouchers) {

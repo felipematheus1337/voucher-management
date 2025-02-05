@@ -25,7 +25,7 @@ public interface VoucherService {
 
     List<VoucherResponseDTO> getByStatus(String status);
 
-    Page<VoucherResponseDTO> getPaginado(Pageable pageable);
+    Page<VoucherResponseDTO> getPaginado(int page, int size);
 
     void createInLote(List<VoucherCreationDTO> vouchers);
 
