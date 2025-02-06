@@ -13,6 +13,9 @@ import com.vouchers.models.VoucherStatus;
 import com.vouchers.models.VoucherType;
 import com.vouchers.repositories.VoucherRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,11 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class VoucherServiceImpl implements VoucherService {
@@ -44,6 +44,12 @@ public class VoucherServiceImpl implements VoucherService {
         this.mongoTemplate = mongoTemplate;
     }
 
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "voucher_list_default", allEntries = true),
+                    @CacheEvict(value = "voucher_by_code", key = "#voucher.code")
+            }
+    )
     @Override
     public VoucherResponseDTO create(VoucherCreationDTO dto) {
         var voucher = new Voucher();
@@ -68,61 +74,12 @@ public class VoucherServiceImpl implements VoucherService {
         return mapper.map(response, VoucherResponseDTO.class);
     }
 
-
-    @Override
-    public List<VoucherResponseDTO> list() {
-        return repository.findAll()
-                .stream()
-                .map(v -> mapper.map(v, VoucherResponseDTO.class))
-                .toList();
-
-    }
-
-    @Override
-    public VoucherResponseDTO getByCode(String code) {
-        var voucher = this.repository.findByCode(code)
-                .orElseThrow(() -> new VoucherNotFoundException(code, "Voucher not found with that code."));
-
-        return this.mapper.map(voucher, VoucherResponseDTO.class);
-
-    }
-
-    @Override
-    public List<VoucherResponseDTO> getByType(String type) {
-        return this.repository.findByType(type)
-                .stream()
-                .map(v -> mapper.map(v, VoucherResponseDTO.class))
-                .toList();
-
-    }
-
-    @Override
-    public List<VoucherResponseDTO> getByStatus(String status) {
-       Query query = new Query(Criteria.where("status").is(status));
-       List<Voucher> vouchers = mongoTemplate.find(query, Voucher.class);
-       return vouchers.stream()
-               .map(v -> mapper.map(v,VoucherResponseDTO.class))
-               .toList();
-    }
-
-    @Override
-    public Page<VoucherResponseDTO> getPaginado(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("expirationDate").ascending());
-
-        Page<Voucher> vouchersPage = this.repository.findAll(pageable);
-
-        Page<VoucherResponseDTO> responsePage = vouchersPage.map(v -> mapper.map(v, VoucherResponseDTO.class));
-
-        return responsePage;
-    }
-
-
-    @Override
-    public void createInLote(List<VoucherCreationDTO> vouchers) {
-
-    }
-
-
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "voucher_list_default", allEntries = true),
+                    @CacheEvict(value = "voucher_by_code", key = "#dto.code")
+            }
+    )
     @Transactional
     @Override
     public UsedVoucherResponseDTO useVoucher(UseVoucherDTO dto) {
@@ -162,6 +119,69 @@ public class VoucherServiceImpl implements VoucherService {
 
         return new UsedVoucherResponseDTO(newBalance, code, status, expirationDate);
     }
+
+
+    @Override
+    @Cacheable(value = "voucher_list_default", key = "'all_vouchers'")
+    public List<VoucherResponseDTO> list() {
+        return repository.findAll()
+                .stream()
+                .map(v -> mapper.map(v, VoucherResponseDTO.class))
+                .toList();
+
+    }
+
+    @Override
+    @Cacheable(value = "voucher_by_code", key = "#code")
+    public VoucherResponseDTO getByCode(String code) {
+        var voucher = this.repository.findByCode(code)
+                .orElseThrow(() -> new VoucherNotFoundException(code, "Voucher not found with that code."));
+
+        return this.mapper.map(voucher, VoucherResponseDTO.class);
+
+    }
+
+    @Override
+    @Cacheable(value = "voucher_by_type", key = "#type")
+    public List<VoucherResponseDTO> getByType(String type) {
+        return this.repository.findByType(type)
+                .stream()
+                .map(v -> mapper.map(v, VoucherResponseDTO.class))
+                .toList();
+
+    }
+
+    @Override
+    @Cacheable(value = "voucher_by_status", key = "#status")
+    public List<VoucherResponseDTO> getByStatus(String status) {
+       Query query = new Query(Criteria.where("status").is(status));
+       List<Voucher> vouchers = mongoTemplate.find(query, Voucher.class);
+       return vouchers.stream()
+               .map(v -> mapper.map(v,VoucherResponseDTO.class))
+               .toList();
+    }
+
+    @Override
+    @Cacheable(value = "voucher_paginado", key = "#page + '_' + #size")
+    public Page<VoucherResponseDTO> getPaginado(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("expirationDate").ascending());
+
+        Page<Voucher> vouchersPage = this.repository.findAll(pageable);
+
+        Page<VoucherResponseDTO> responsePage = vouchersPage.map(v -> mapper.map(v, VoucherResponseDTO.class));
+
+        return responsePage;
+    }
+
+
+    @Override
+
+    public void createInLote(List<VoucherCreationDTO> vouchers) {
+
+    }
+
+
+
 
 
     private BigDecimal calculateAvaliableValue(BigDecimal balance, BigDecimal value) {
