@@ -1,5 +1,7 @@
 package com.vouchers.services;
 
+import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.WriteModel;
 import com.vouchers.dtos.UseVoucherDTO;
 import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
@@ -12,6 +14,7 @@ import com.vouchers.models.Voucher;
 import com.vouchers.models.VoucherStatus;
 import com.vouchers.models.VoucherType;
 import com.vouchers.repositories.VoucherRepository;
+import com.vouchers.utils.KafkaUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,9 +23,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +35,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Service
 public class VoucherServiceImpl implements VoucherService {
@@ -37,11 +44,13 @@ public class VoucherServiceImpl implements VoucherService {
     private final VoucherRepository repository;
     private final ModelMapper mapper;
     private final MongoTemplate mongoTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public VoucherServiceImpl(VoucherRepository repository, ModelMapper modelMapper, MongoTemplate mongoTemplate) {
+    public VoucherServiceImpl(VoucherRepository repository, ModelMapper modelMapper, MongoTemplate mongoTemplate, KafkaTemplate kafkaTemplate) {
         this.repository = repository;
         this.mapper = modelMapper;
         this.mongoTemplate = mongoTemplate;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Caching(
@@ -52,12 +61,19 @@ public class VoucherServiceImpl implements VoucherService {
     )
     @Override
     public VoucherResponseDTO create(VoucherCreationDTO dto) {
+        var voucher = createVoucher(dto);
+
+        var response = repository.save(voucher);
+
+        return mapper.map(response, VoucherResponseDTO.class);
+    }
+
+    private Voucher createVoucher(VoucherCreationDTO dto) {
         var voucher = new Voucher();
 
         voucher.setCreatedAt(LocalDateTime.now());
         voucher.setBalance(dto.balance());
         voucher.setCode(this.generateVoucherCode());
-
         voucher.setDescription(dto.description());
         voucher.setType(dto.type());
         voucher.setStatus(VoucherStatus.ACTIVE);
@@ -69,9 +85,7 @@ public class VoucherServiceImpl implements VoucherService {
         LocalDateTime expirationDate = this.setExpirationDate(voucher.getType());
         voucher.setExpirationDate(expirationDate);
 
-        var response = repository.save(voucher);
-
-        return mapper.map(response, VoucherResponseDTO.class);
+        return voucher;
     }
 
     @Caching(
@@ -118,6 +132,24 @@ public class VoucherServiceImpl implements VoucherService {
         this.repository.save(voucher);
 
         return new UsedVoucherResponseDTO(newBalance, code, status, expirationDate);
+    }
+
+    @Override
+    public void saveInLote(List<VoucherCreationDTO> vouchers) {
+
+        List<Voucher> vouchersToSave = vouchers
+                .parallelStream()
+                .map(v -> this.createVoucher(v))
+                .toList();
+
+        var writeModels = vouchersToSave.parallelStream()
+                .map(voucher -> new InsertOneModel<>(voucher))
+                .collect(Collectors.toList());
+
+        mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, Voucher.class)
+                .insert(writeModels)
+                .execute();
+
     }
 
 
@@ -175,14 +207,16 @@ public class VoucherServiceImpl implements VoucherService {
 
 
     @Override
-
     public void createInLote(List<VoucherCreationDTO> vouchers) {
 
+        if (vouchers == null || vouchers.isEmpty())
+            return;
+
+        CompletableFuture.runAsync(() -> {
+            this.kafkaTemplate.send(KafkaUtils.LOTE_TOPIC_VOUCHER, vouchers);
+        });
+
     }
-
-
-
-
 
     private BigDecimal calculateAvaliableValue(BigDecimal balance, BigDecimal value) {
         return balance.subtract(value);

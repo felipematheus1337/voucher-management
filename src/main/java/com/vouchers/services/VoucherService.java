@@ -30,4 +30,6 @@ public interface VoucherService {
     void createInLote(List<VoucherCreationDTO> vouchers);
 
     UsedVoucherResponseDTO useVoucher(UseVoucherDTO dto);
+
+    void saveInLote(List<VoucherCreationDTO> vouchers);
 }

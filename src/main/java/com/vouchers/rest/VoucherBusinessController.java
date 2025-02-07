@@ -29,6 +29,12 @@ public class VoucherBusinessController {
         return ResponseEntity.status(201).body(response);
     }
 
+    @PostMapping("/create/lote")
+    public ResponseEntity<Void> createInLote(@RequestBody List<VoucherCreationDTO> dto) {
+        voucherService.createInLote(dto);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/use")
     public ResponseEntity<UsedVoucherResponseDTO> useVoucher(@RequestBody UseVoucherDTO dto) {
         return ResponseEntity.ok(voucherService.useVoucher(dto));
