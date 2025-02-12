@@ -149,7 +149,6 @@ public class VoucherServiceImpl implements VoucherService {
         mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, Voucher.class)
                 .insert(writeModels)
                 .execute();
-
     }
 
 
