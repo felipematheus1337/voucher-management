@@ -1,7 +1,6 @@
 package com.vouchers.services;
 
 import com.mongodb.client.model.InsertOneModel;
-import com.mongodb.client.model.WriteModel;
 import com.vouchers.dtos.UseVoucherDTO;
 import com.vouchers.dtos.UsedVoucherResponseDTO;
 import com.vouchers.dtos.VoucherCreationDTO;
@@ -14,7 +13,7 @@ import com.vouchers.models.Voucher;
 import com.vouchers.models.VoucherStatus;
 import com.vouchers.models.VoucherType;
 import com.vouchers.repositories.VoucherRepository;
-import com.vouchers.utils.KafkaUtils;
+import com.vouchers.utils.BusinessUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -33,9 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Service
@@ -212,8 +215,45 @@ public class VoucherServiceImpl implements VoucherService {
             return;
 
         CompletableFuture.runAsync(() -> {
-            this.kafkaTemplate.send(KafkaUtils.LOTE_TOPIC_VOUCHER, vouchers);
+            this.kafkaTemplate.send(BusinessUtils.LOTE_TOPIC_VOUCHER, vouchers);
         });
+
+    }
+
+    @Override
+    public void verifyVouchers() throws ExecutionException, InterruptedException {
+
+        ExecutorService executor = BusinessUtils.getExecutorByCPU();
+        int pageSize = 1000;
+        int page = 0;
+        Page<Voucher> vouchers;
+
+        do {
+
+            vouchers = repository.findAll(PageRequest.of(page, pageSize));
+
+            List<Future<?>> futures = new ArrayList<>();
+
+            for (Voucher v : vouchers)
+                futures.add(executor.submit(() -> validarVoucher(v)));
+
+            for (Future<?> future: futures)
+                future.get();
+
+            page++;
+
+        } while (!vouchers.isEmpty());
+
+        executor.shutdown();
+
+    }
+
+    private void validarVoucher(Voucher voucher) {
+        LocalDateTime actualDate = LocalDateTime.now();
+        LocalDateTime expirationDate =  voucher.getExpirationDate();
+
+        if (actualDate.isAfter(expirationDate))
+            voucher.setStatus(VoucherStatus.EXPIRED);
 
     }
 

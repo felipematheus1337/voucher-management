@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 public interface VoucherService {
 
@@ -32,4 +33,6 @@ public interface VoucherService {
     UsedVoucherResponseDTO useVoucher(UseVoucherDTO dto);
 
     void saveInLote(List<VoucherCreationDTO> vouchers);
+
+    void verifyVouchers() throws ExecutionException, InterruptedException;
 }
